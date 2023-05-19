@@ -1,0 +1,82 @@
+name: 'Adds a label to a pull request/issue'
+description: 'Runs visual regression testing with backstop.js between a production site and PR version of a site'
+inputs:
+  repo-owner: # owner of the repo
+    description: 'Owner/namespace of the target repository'
+    required: true
+    default: ${{ github.repository_owner }}
+  repo-name:
+    description: 'Target repository name'
+    required: true
+    default: ${{ github.event.repository.name }}
+  github-token:
+    description: 'Github token to the repository so we can work with the github api. Typically GITHUB_TOKEN'
+    required: true
+  issue-type:
+    description: 'Is this an issue or a pull request?'
+    required: true
+  number:
+    description: 'The issue/pull request number'
+    required: true
+  label:
+    description: 'The label you want to add to the issue/pull-request. Will be created if it doesn''t exist'
+    required: true
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: 'Set up Github token'
+      id: setup-gh-token
+      shell: bash
+      run: echo "GH_TOKEN=${{ inputs.github-token }}" >> $GITHUB_ENV
+
+    # @todo do we need a step to verify there are no problematic characters in the label?
+
+    - name: Determine if issue or pull request
+      shell: bash
+      id: issue-or-pr
+      run: |
+        if [[ "${{ inputs.issue-type }}" =~ ^[Ii.*] ]]; then
+          type="issue"
+        elif [[ ${{ inputs.issue-type }} =~ ^[Pp].* ]]; then
+          type="pr"
+        else
+          echo "::error::I was unable to determine if the label should be added to a pull request or an issue."
+          exit 1;
+        fi
+        
+        echo "type=${type}" >> $GITHUB_OUTPUT
+
+    - name: Verify Issue/PR number is valid
+      shell: bash
+      id: verify-number-valid
+      run: |
+        type=${{ steps.issue-or-pr.outputs.type }}
+        if [[ "${{ inputs.number }}" != $(gh ${type} list --search=${{ inputs.number }} -R ${{ inputs.repo-owner }}/${{ inputs }} --json number -q '.[]|.number') ]]; then
+          echo "::error::The number you gave me, ${{ inputs.number }} does not appear to be a valid ${type}"
+          exit 1
+        else
+          # set a continue
+          echo "continue=yes" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Verify label exists
+      if: steps.verify-number-valid.continue == "yes"
+      shell: bash
+      run: |
+        if [[ "${{ inputs.label }}" != $(gh label list --search "${{ inputs.label }}" --json name -q '.[] | .name') ]]; then
+          echo "Label ${{ inputs.label }} doesn't exist so I need to create it."
+          gh label create "${{ inputs.label }}" -R "${{ inputs.repo-owner }}/${{ inputs.repo-name }}"
+        else
+          echo "Label ${{ inputs.label }} already exists so no need to create it."
+        fi
+
+    - name: Add label to issue/pull request
+      shell: bash
+      if: steps.verify-number-valid.continue == "yes"
+      run: |
+        type=${{ steps.issue-or-pr.outputs.type }}
+        number=${{ inputs.number }}
+        
+        gh ${type} edit ${number} --add-label "${{ inputs.label }}" -R "${{ inputs.repo-owner }}/${{ inputs.repo-name }}"
