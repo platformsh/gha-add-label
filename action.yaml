@@ -85,7 +85,7 @@ runs:
         
         gh ${type} edit ${number} --add-label "${{ inputs.label }}" -R "${{ inputs.repo-owner }}/${{ inputs.repo-name }}"
         
-        if [ $? =0 ]; then
+        if [ $? = 0 ]; then
           report="true"
         else
           report="false"
