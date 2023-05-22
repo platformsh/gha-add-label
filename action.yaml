@@ -65,7 +65,7 @@ runs:
         fi
 
     - name: Verify label exists
-      if: steps.verify-number-valid.continue == "yes"
+      if: steps.verify-number-valid.outputs.continue == 'yes'
       shell: bash
       run: |
         if [[ "${{ inputs.label }}" != $(gh label list --search "${{ inputs.label }}" --json name -q '.[] | .name') ]]; then
@@ -78,7 +78,7 @@ runs:
     - name: Add label to issue/pull request
       id: add-label
       shell: bash
-      if: steps.verify-number-valid.continue == "yes"
+      if: steps.verify-number-valid.outputs.continue == 'yes'
       run: |
         type=${{ steps.issue-or-pr.outputs.type }}
         number=${{ inputs.number }}
