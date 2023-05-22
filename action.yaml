@@ -42,7 +42,7 @@ runs:
       run: |
         if [[ "${{ inputs.issue-type }}" =~ ^[Ii.*] ]]; then
           type="issue"
-        elif [[ ${{ inputs.issue-type }} =~ ^[Pp].* ]]; then
+        elif [[ "${{ inputs.issue-type }}" =~ ^[Pp].* ]]; then
           type="pr"
         else
           echo "::error::I was unable to determine if the label should be added to a pull request or an issue."
