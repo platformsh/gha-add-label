@@ -21,7 +21,10 @@ inputs:
   label:
     description: 'The label you want to add to the issue/pull-request. Will be created if it doesn''t exist'
     required: true
-
+outputs:
+  success:
+    description: "If adding label was successful or not."
+    value: ${{ steps.add-label.outputs.success }}
 
 runs:
   using: "composite"
@@ -73,6 +76,7 @@ runs:
         fi
 
     - name: Add label to issue/pull request
+      id: add-label
       shell: bash
       if: steps.verify-number-valid.continue == "yes"
       run: |
@@ -80,3 +84,11 @@ runs:
         number=${{ inputs.number }}
         
         gh ${type} edit ${number} --add-label "${{ inputs.label }}" -R "${{ inputs.repo-owner }}/${{ inputs.repo-name }}"
+        
+        if [ $? =0 ]; then
+          report="true"
+        else
+          report="false"
+        fi
+        
+        echo "success=${report}" >> $GITHUB_OUTPUT
