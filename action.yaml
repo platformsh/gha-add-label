@@ -111,7 +111,9 @@ runs:
       if: steps.verify-number-valid.outputs.continue == 'yes'
       shell: bash
       run: |
-        if [[ "${{ inputs.label }}" != $(gh label list --search "${{ inputs.label }}" -R ${{ inputs.repo-owner }}/${{ inputs.repo-name }} --json name -q '.[] | .name') ]]; then
+        # the gh cli doesn't give us a `label view <label>` command so we have to work around it and call the endpoint
+        # directly. 
+        if [[ "${{ inputs.label }}" != $(gh api "repos/${{ inputs.repo-owner }}/${{ inputs.repo-name }}/labels/${{ inputs.label }}" -q '.name') ]]; then
           echo "Label ${{ inputs.label }} doesn't exist so I need to create it."
           gh label create "${{ inputs.label }}" -R "${{ inputs.repo-owner }}/${{ inputs.repo-name }}"
         else
