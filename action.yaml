@@ -79,7 +79,7 @@ runs:
         if [ -n "${inputReceived}" ] && [ "${inputReceived}" -eq "${inputReceived}" ] 2>/dev/null; then
           # they most likely gave us a URL so pluck the number off the end.
           if [[ "${inputReceived}" =~ ([0-9]+)[/]?$ ]]; then
-            idNumber = "${BASH_REMATCH[1]}"
+            idNumber="${BASH_REMATCH[1]}"
           else
             echo "::error::I was unable to determine the identifier based on what you gave me."
             echo "::debug::inputReceived: ${inputReceived}"
