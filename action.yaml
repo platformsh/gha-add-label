@@ -55,7 +55,7 @@ runs:
         
         echo "failreport=${rof}" >> $GITHUB_OUTPUT
 
-    - name: Determine if report or fail
+    - name: Determine if this is an issue or PR
       shell: bash
       id: issue-or-pr
       run: |
@@ -85,6 +85,9 @@ runs:
             echo "::debug::inputReceived: ${inputReceived}"
             exit 1
           fi
+        elif [[ -z "${inputReceived}" ]]; then
+          echo "::error::You gave me an empty string for the ${{ steps.issue-or-pr.output.type }}. Please provide a valid identifier."
+          exit 1
         else
         # we have a pr number so save it as-is
           idNumber="${inputReceived}"
@@ -113,7 +116,7 @@ runs:
       run: |
         # the gh cli doesn't give us a `label view <label>` command so we have to work around it and call the endpoint
         # directly. 
-        if [[ "${{ inputs.label }}" != $(gh api "repos/${{ inputs.repo-owner }}/${{ inputs.repo-name }}/labels/${{ inputs.label }}" -q '.name') ]]; then
+        if [[ "${{ inputs.label }}" != $(gh api "repos/${{ inputs.repo-owner }}/${{ inputs.repo-name }}/labels/${{ inputs.label }}" -q '.name' 2>/dev/null) ]]; then
           echo "Label ${{ inputs.label }} doesn't exist so I need to create it."
           gh label create "${{ inputs.label }}" -R "${{ inputs.repo-owner }}/${{ inputs.repo-name }}"
         else
