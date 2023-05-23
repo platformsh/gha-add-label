@@ -44,13 +44,15 @@ runs:
       shell: bash
       id: fail-or-report
       run: |
+        # Step: Determine if we should report add label failure or fail workflow
+        # fail is exit 10
         if [[ "${{ inputs.fail-or-report }}" =~ ^[Ff.*] ]]; then
           rof="fail"
         elif [[ "${{ inputs.fail-or-report }}" =~ ^[Rr].* ]]; then
           rof="report"
         else
           echo "::error::I was unable to determine if you want me to fail or the workflow or report back."
-          exit 1;
+          exit 10;
         fi
         
         echo "failreport=${rof}" >> $GITHUB_OUTPUT
@@ -59,13 +61,15 @@ runs:
       shell: bash
       id: issue-or-pr
       run: |
+        # Step: Determine if this is an issue or PR
+        # fail is exit 20
         if [[ "${{ inputs.issue-type }}" =~ ^[Ii.*] ]]; then
           type="issue"
         elif [[ "${{ inputs.issue-type }}" =~ ^[Pp].* ]]; then
           type="pr"
         else
           echo "::error::I was unable to determine if the label should be added to a pull request or an issue."
-          exit 1;
+          exit 20;
         fi
         
         echo "type=${type}" >> $GITHUB_OUTPUT
@@ -74,6 +78,9 @@ runs:
       id: set-number
       shell: bash
       run: |
+        # Step: Determine and set identifier number
+        # exit 30 is an empty string passed in for identifier
+        # exit 40 is unable to retrieve number from string passed in
         inputReceived="${{ inputs.identifier }}"
         # if it IS a number, it'll evaluate to true. pipe stderr to dev/null since if it isn't, 
         # it'll warn "[: integer expression expected"
@@ -82,7 +89,7 @@ runs:
           idNumber="${inputReceived}"
         elif [[ -z "${inputReceived}" ]]; then
           echo "::error::You gave me an empty string for the ${{ steps.issue-or-pr.output.type }}. Please provide a valid identifier."
-          exit 1
+          exit 30
         else
           # they most likely gave us a URL so pluck the number off the end.
           if [[ "${inputReceived}" =~ ([0-9]+)[/]?$ ]]; then
@@ -90,7 +97,7 @@ runs:
           else
             echo "::error::I was unable to determine the identifier based on what you gave me."
             echo "::debug::inputReceived: ${inputReceived}"
-            exit 1
+            exit 40
           fi
         fi
         
@@ -100,12 +107,14 @@ runs:
       shell: bash
       id: verify-number-valid
       run: |
+        # Step: Verify Issue/PR number is valid
+        # failure is exit 50
         type="${{ steps.issue-or-pr.outputs.type }}"
         identifier="${{ steps.set-number.outputs.identifier-number }}"
         # @todo should we pipe stderr on the gh call to /dev/null?
         if [[ "${identifier}" != $(gh ${type} view ${identifier} -R ${{ inputs.repo-owner }}/${{ inputs.repo-name }} --json number -q '.number') ]]; then
           echo "::error::The identifier number ${identifier} does not appear to be a valid ${type}"
-          exit 1
+          exit 50
         else
           # set a continue
           echo "continue=yes" >> $GITHUB_OUTPUT
@@ -115,6 +124,7 @@ runs:
       if: steps.verify-number-valid.outputs.continue == 'yes'
       shell: bash
       run: |
+        # Step: Verify requested label exists
         # the gh cli doesn't give us a `label view <label>` command so we have to work around it and call the endpoint
         # directly. 
         if [[ "${{ inputs.label }}" != $(gh api "repos/${{ inputs.repo-owner }}/${{ inputs.repo-name }}/labels/${{ inputs.label }}" -q '.name' 2>/dev/null) ]]; then
@@ -129,6 +139,8 @@ runs:
       shell: bash
       if: steps.verify-number-valid.outputs.continue == 'yes'
       run: |
+        # Step: Add the label to the issue/pull request
+        # failure is exit 60
         type="${{ steps.issue-or-pr.outputs.type }}"
         number=${{ steps.set-number.outputs.identifier-number }}
         
@@ -140,7 +152,7 @@ runs:
           report="false"
           if [[ "fail" = "${{ steps.fail-or-report.outputs.failreport }}" ]]; then
             echo "::error::Adding label ${{ inputs.label }} to ${type} ${number} failed!"
-            exit 1
+            exit 60
           fi
         fi
         
