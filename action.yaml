@@ -138,7 +138,7 @@ runs:
           echo "::notice::Created label ${{ inputs.label }}. Continuing."
         else
           echo "Label ${{ inputs.label }} already exists so no need to create it."
-          echo "::notice::Did not need to create label ${{ inputs.label }}. Skipping.
+          echo "::notice::Did not need to create label ${{ inputs.label }}. Skipping."
         fi
 
     - name: Add label to issue/pull request
