@@ -40,7 +40,22 @@ runs:
 
     # @todo do we need a step to verify there are no problematic characters in the label?
 
-    - name: Determine if issue or pull request
+    - name: Determine if we should report add label failure or fail workflow
+      shell: bash
+      id: fail-or-report
+      run: |
+        if [[ "${{ inputs.fail-or-report }}" =~ ^[Ff.*] ]]; then
+          rof="fail"
+        elif [[ "${{ inputs.fail-or-report }}" =~ ^[Rr].* ]]; then
+          rof="report"
+        else
+          echo "::error::I was unable to determine if you want me to fail or the workflow or report back."
+          exit 1;
+        fi
+        
+        echo "failreport=${rof}" >> $GITHUB_OUTPUT
+
+    - name: Determine if report or fail
       shell: bash
       id: issue-or-pr
       run: |
