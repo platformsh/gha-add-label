@@ -123,15 +123,21 @@ runs:
       shell: bash
       if: steps.verify-number-valid.outputs.continue == 'yes'
       run: |
-        type=${{ steps.issue-or-pr.outputs.type }}
-        number=${{ inputs.number }}
+        type="${{ steps.issue-or-pr.outputs.type }}"
+        number=${{ steps.set-number.outputs.identifier-number }}
         
-        gh ${type} edit ${number} --add-label "${{ inputs.label }}" -R "${{ inputs.repo-owner }}/${{ inputs.repo-name }}"
+        $suppress=$(gh ${type} edit ${number} --add-label "${{ inputs.label }}" -R "${{ inputs.repo-owner }}/${{ inputs.repo-name }}" 2>/dev/null)
         
         if [ $? = 0 ]; then
           report="true"
         else
           report="false"
+          if [[ "fail" = "${{ steps.fail-or-report.outputs.failreport }}" ]]; then
+            echo "::error::Adding label ${{ inputs.label }} to ${type} ${number} failed!"
+            exit 1
+          fi
         fi
         
         echo "success=${report}" >> $GITHUB_OUTPUT
+
+        
