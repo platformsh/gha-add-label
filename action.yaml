@@ -15,12 +15,16 @@ inputs:
   issue-type:
     description: 'Is this an issue or a pull request?'
     required: true
-  number:
-    description: 'The issue/pull request number'
+  identifier:
+    description: 'The issue/pull request number or URL'
     required: true
   label:
     description: 'The label you want to add to the issue/pull-request. Will be created if it doesn''t exist'
     required: true
+  fail-or-report:
+    description: 'Should a failure to add a label fail the workflow or be reported as an output? Defaults to fail.'
+    required: false
+    default: 'fail'
 outputs:
   success:
     description: "If adding label was successful or not."
