@@ -55,13 +55,37 @@ runs:
         
         echo "type=${type}" >> $GITHUB_OUTPUT
 
+    - name: Determine and set identifier number
+      id: set-number
+      shell: bash
+      run: |
+        inputReceived="${{ inputs.identifier }}"
+        # if it's not a number, it'll evaluate to false. pipe stderr to dev/null since it'll warn "[: integer expression expected"
+        if [ -n "${inputReceived}" ] && [ "${inputReceived}" -eq "${inputReceived}" ] 2>/dev/null; then
+          # they most likely gave us a URL so pluck the number off the end.
+          if [[ "${inputReceived}" =~ ([0-9]+)[/]?$ ]]; then
+            idNumber = "${BASH_REMATCH[1]}"
+          else
+            echo "::error::I was unable to determine the identifier based on what you gave me."
+            echo "::debug::inputReceived: ${inputReceived}"
+            exit 1
+          fi
+        else
+        # we have a pr number so save it as-is
+          idNumber="${inputReceived}"
+        fi
+        
+        echo "identifier-number=${idNumber}" >> $GITHUB_OUTPUT
+
     - name: Verify Issue/PR number is valid
       shell: bash
       id: verify-number-valid
       run: |
-        type=${{ steps.issue-or-pr.outputs.type }}
-        if [[ "${{ inputs.number }}" != $(gh ${type} list --search=${{ inputs.number }} -R ${{ inputs.repo-owner }}/${{ inputs.repo-name }} --json number -q '.[]|.number') ]]; then
-          echo "::error::The number you gave me, ${{ inputs.number }} does not appear to be a valid ${type}"
+        type="${{ steps.issue-or-pr.outputs.type }}"
+        identifier="${{ steps.set-number.outputs.identifier-number }}"
+        # @todo should we pipe stderr on the gh call to /dev/null?
+        if [[ "${identifier}" != $(gh ${type} view ${identifier} -R ${{ inputs.repo-owner }}/${{ inputs.repo-name }} --json number -q '.number') ]]; then
+          echo "::error::The identifier number ${identifier} does not appear to be a valid ${type}"
           exit 1
         else
           # set a continue
