@@ -75,8 +75,15 @@ runs:
       shell: bash
       run: |
         inputReceived="${{ inputs.identifier }}"
-        # if it's not a number, it'll evaluate to false. pipe stderr to dev/null since it'll warn "[: integer expression expected"
+        # if it IS a number, it'll evaluate to true. pipe stderr to dev/null since if it isn't, 
+        # it'll warn "[: integer expression expected"
         if [ -n "${inputReceived}" ] && [ "${inputReceived}" -eq "${inputReceived}" ] 2>/dev/null; then
+          # we have a pr number so save it as-is
+          idNumber="${inputReceived}"
+        elif [[ -z "${inputReceived}" ]]; then
+          echo "::error::You gave me an empty string for the ${{ steps.issue-or-pr.output.type }}. Please provide a valid identifier."
+          exit 1
+        else
           # they most likely gave us a URL so pluck the number off the end.
           if [[ "${inputReceived}" =~ ([0-9]+)[/]?$ ]]; then
             idNumber="${BASH_REMATCH[1]}"
@@ -85,12 +92,6 @@ runs:
             echo "::debug::inputReceived: ${inputReceived}"
             exit 1
           fi
-        elif [[ -z "${inputReceived}" ]]; then
-          echo "::error::You gave me an empty string for the ${{ steps.issue-or-pr.output.type }}. Please provide a valid identifier."
-          exit 1
-        else
-        # we have a pr number so save it as-is
-          idNumber="${inputReceived}"
         fi
         
         echo "identifier-number=${idNumber}" >> $GITHUB_OUTPUT
