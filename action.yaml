@@ -103,7 +103,7 @@ runs:
           fi
         fi
         
-        echo "::notice::Setting identifier to ${identifier}. Continuing."
+        echo "::notice::Setting identifier to ${idNumber}. Continuing."
         echo "identifier-number=${idNumber}" >> $GITHUB_OUTPUT
 
     - name: Verify Issue/PR number is valid
@@ -151,9 +151,9 @@ runs:
         type="${{ steps.issue-or-pr.outputs.type }}"
         number=${{ steps.set-number.outputs.identifier-number }}
         
-        suppress=$(gh ${type} edit ${number} --add-label "${{ inputs.label }}" -R "${{ inputs.repo-owner }}/${{ inputs.repo-name }}" 2>/dev/null)
-        echo "::notice::Return from trying to edit ${type} ${number}:"
-        echo "::notice::${suppress}"
+        gh ${type} edit ${number} --add-label "${{ inputs.label }}" -R "${{ inputs.repo-owner }}/${{ inputs.repo-name }}"
+        #echo "::notice::Return from trying to edit ${type} ${number}:"
+        #echo "::notice::${suppress}"
         if [ $? = 0 ]; then
           report="true"
           echo "::notice::Editing ${type} ${number} to add label ${{ inputs.label }} succeeded."
